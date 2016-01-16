@@ -271,11 +271,11 @@ FOUNDATION_STATIC_INLINE NSUInteger SDCacheCostForImage(UIImage *image) {
 }
 
 - (BOOL)diskImageExistsWithKey:(NSString *)key {
-    BOOL exists = NO;
-    
-    // this is an exception to access the filemanager on another queue than ioQueue, but we are using the shared instance
-    // from apple docs on NSFileManager: The methods of the shared NSFileManager object can be called from multiple threads safely.
-    exists = [[NSFileManager defaultManager] fileExistsAtPath:[self defaultCachePathForKey:key]];
+    __block BOOL exists = NO;
+  
+    dispatch_sync(_ioQueue, ^{
+        exists = [_fileManager fileExistsAtPath:[self defaultCachePathForKey:key]];
+    });
     
     return exists;
 }
@@ -298,19 +298,20 @@ FOUNDATION_STATIC_INLINE NSUInteger SDCacheCostForImage(UIImage *image) {
 - (UIImage *)imageFromDiskCacheForKey:(NSString *)key {
 
     // First check the in-memory cache...
-    UIImage *image = [self imageFromMemoryCacheForKey:key];
+    __block UIImage *image = [self imageFromMemoryCacheForKey:key];
     if (image) {
         return image;
     }
+    
+    dispatch_sync(_ioQueue, ^{
+        image = [self diskImageForKey:key];
+        if (image && self.shouldCacheImagesInMemory) {
+            NSUInteger cost = SDCacheCostForImage(image);
+            [self.memCache setObject:image forKey:key cost:cost];
+        }
+    });
 
-    // Second check the disk cache...
-    UIImage *diskImage = [self diskImageForKey:key];
-    if (diskImage && self.shouldCacheImagesInMemory) {
-        NSUInteger cost = SDCacheCostForImage(diskImage);
-        [self.memCache setObject:diskImage forKey:key cost:cost];
-    }
-
-    return diskImage;
+    return image;
 }
 
 - (NSData *)diskImageDataBySearchingAllPathsForKey:(NSString *)key {
