@@ -275,7 +275,15 @@ typedef void(^SDWebImageCalculateSizeBlock)(NSUInteger fileCount, NSUInteger tot
 
 @interface SDImageCache (Custom)
 
+/**
+ *	Writes data to disk, this doesn't decoded data into image, nor store it in memory cache
+ */
 - (void)storeImageData:(NSData *)data forKey:(NSString *)key;
+
+/**
+ *	Reads image data from the disk, doesn't decoded data into image, nor store it in memory cache
+ */
+- (nullable NSData *)imageDataForKey:(NSString *)key;
 
 @end
 

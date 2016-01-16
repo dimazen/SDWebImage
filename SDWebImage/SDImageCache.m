@@ -296,7 +296,6 @@ FOUNDATION_STATIC_INLINE NSUInteger SDCacheCostForImage(UIImage *image) {
 }
 
 - (UIImage *)imageFromDiskCacheForKey:(NSString *)key {
-
     // First check the in-memory cache...
     __block UIImage *image = [self imageFromMemoryCacheForKey:key];
     if (image) {
@@ -404,7 +403,6 @@ FOUNDATION_STATIC_INLINE NSUInteger SDCacheCostForImage(UIImage *image) {
 }
 
 - (void)removeImageForKey:(NSString *)key fromDisk:(BOOL)fromDisk withCompletion:(SDWebImageNoParamsBlock)completion {
-    
     if (key == nil) {
         return;
     }
@@ -644,6 +642,15 @@ FOUNDATION_STATIC_INLINE NSUInteger SDCacheCostForImage(UIImage *image) {
 			[fileURL setResourceValue:[NSNumber numberWithBool:YES] forKey:NSURLIsExcludedFromBackupKey error:nil];
 		}
 	});
+}
+
+- (NSData *)imageDataForKey:(NSString *)key {
+	__block NSData *data = nil;
+	dispatch_sync(_ioQueue, ^{
+		data = [self diskImageDataBySearchingAllPathsForKey:key];
+	});
+	
+	return data;
 }
 
 @end
