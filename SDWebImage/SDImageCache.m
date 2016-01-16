@@ -622,3 +622,28 @@ FOUNDATION_STATIC_INLINE NSUInteger SDCacheCostForImage(UIImage *image) {
 }
 
 @end
+
+@implementation SDImageCache (Custom)
+
+- (void)storeImageData:(NSData *)data forKey:(NSString *)key {
+	dispatch_async(self.ioQueue, ^{
+		if (![_fileManager fileExistsAtPath:_diskCachePath]) {
+			[_fileManager createDirectoryAtPath:_diskCachePath withIntermediateDirectories:YES attributes:nil error:NULL];
+		}
+		
+		// get cache Path for image key
+		NSString *cachePathForKey = [self defaultCachePathForKey:key];
+		// transform to NSUrl
+		NSURL *fileURL = [NSURL fileURLWithPath:cachePathForKey];
+		
+		BOOL written = [data writeToURL:fileURL atomically:YES];
+		NSParameterAssert(written);
+		
+		// disable iCloud backup
+		if (self.shouldDisableiCloud) {
+			[fileURL setResourceValue:[NSNumber numberWithBool:YES] forKey:NSURLIsExcludedFromBackupKey error:nil];
+		}
+	});
+}
+
+@end
